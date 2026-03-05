@@ -1,15 +1,28 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { useFieldArray, useForm } from "react-hook-form";
 
 function AdminProjectForm({ project, token, onSave, onCancel }) {
-  const [form, setForm] = useState({
-    title: project?.title || '',
-    desc: project?.desc || '',
-    type: project?.type || 'Course Project',
-    links: project?.links || [{ label: '', url: '' }],
+  // Changes: Kita akan guna useFieldArray instead of managing form state manually
+  const {register, handleSubmit, control, formState: {errors}} = useForm({
+    defaultValues: {
+      title: project?.title || "",
+      desc: project?.desc || "",
+      type: project?.type || "Course Project",
+      links: project?.links || [{ label: "", url: "" }]
+    }
   });
-  const [thumbnailFiles, setThumbnailFiles] = useState([]);
-  const [imageFiles, setImageFiles] = useState([]);
+
+  const {
+    fields: linkFields,
+    append: appendLink,
+    remove: removeLink
+  } = useFieldArray({
+    control,
+    name: "links"
+  });
+  // Until here ^
+  
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -17,33 +30,32 @@ function AdminProjectForm({ project, token, onSave, onCancel }) {
   const existingThumbnails = project?.thumbnail || [];
   const existingImages = project?.images || [];
 
-  const handleChange = (e) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+  console.log("AdminProjectForm rendered with project: ", project);
 
-  const handleLinkChange = (index, field, value) => {
-    const updated = [...form.links];
-    updated[index] = { ...updated[index], [field]: value };
-    setForm(prev => ({ ...prev, links: updated }));
-  };
-
-  const addLink = () => setForm(prev => ({ ...prev, links: [...prev.links, { label: '', url: '' }] }));
-  const removeLink = (index) => setForm(prev => ({ ...prev, links: prev.links.filter((_, i) => i !== index) }));
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (data) => {
     setSubmitting(true);
     setError('');
 
     const formData = new FormData();
-    formData.append('title', form.title);
-    formData.append('desc', form.desc);
-    formData.append('type', form.type);
-    formData.append('links', JSON.stringify(form.links));
+    formData.append('title', data.title);
+    formData.append('desc', data.desc);
+    formData.append('type', data.type);
+    formData.append('links', JSON.stringify(data.links));
 
-    thumbnailFiles.forEach(f => formData.append('thumbnail', f));
-    imageFiles.forEach(f => formData.append('images', f));
+    if(data.thumbnail && data.thumbnail.length > 0) {
+      formData.append('thumbnail', data.thumbnail[0]);
+    }
 
+    if(data.images && data.images.length > 0) {
+      Array.from(data.images).forEach(f => formData.append('images', f));
+    }
+
+    // TODO: Delete soon. This one only for testing if formData is constructed correctly
+    for (let pair of formData.entries()) {
+      console.log(pair[0], pair[1]);
+    }
+
+    // This is where the API call would go to store the project data
     try {
       if (project) {
         await axios.put(`/api/admin/projects/${project._id}`, formData, {
@@ -75,32 +87,45 @@ function AdminProjectForm({ project, token, onSave, onCancel }) {
 
         {error && <p className="text-red-400 mb-4">{error}</p>}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-2xl">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 max-w-2xl">
           <div>
             <label className="text-white text-sm block mb-1">Title</label>
-            <input name="title" value={form.title} onChange={handleChange} required
+            <input 
+              {...register('title', {required: "Title is required"})}
               className="w-full px-4 py-2 rounded bg-burgundy text-white placeholder-grey border border-burgundy focus:outline-none focus:border-bright-pink" />
+            {errors.title && (
+              <p className="text-red-400 text-sm">{errors.title.message}</p>
+            )}
           </div>
 
           <div>
             <label className="text-white text-sm block mb-1">Description</label>
-            <textarea name="desc" value={form.desc} onChange={handleChange} required rows={3}
+            <textarea 
+              rows={3}
+              {...register('desc', {required: "Description is required"})}
               className="w-full px-4 py-2 rounded bg-burgundy text-white placeholder-grey border border-burgundy focus:outline-none focus:border-bright-pink resize-none" />
+            {errors.desc && (
+              <p className="text-red-400 text-sm">{errors.desc.message}</p>
+            )}
           </div>
 
           <div>
             <label className="text-white text-sm block mb-1">Type</label>
-            <select name="type" value={form.type} onChange={handleChange} required
+            <select 
+              {...register('type', {required: "Type is required"})}
               className="w-full px-4 py-2 rounded bg-burgundy text-white border border-burgundy focus:outline-none focus:border-bright-pink">
               <option value="Course Project">Course Project</option>
               <option value="Hobby">Hobby</option>
               <option value="PEKOM Events">PEKOM Events</option>
             </select>
+            {errors.type && (
+              <p className="text-red-400 text-sm">{errors.type.message}</p>
+            )}
           </div>
 
           <div>
             <label className="text-white text-sm block mb-1">
-              Thumbnails (2 images){project ? ' — leave empty to keep existing' : ''}
+              Thumbnails (1 image){project ? ' — leave empty to keep existing' : ''}
             </label>
             {project && existingThumbnails.length > 0 && (
               <div className="flex gap-2 mb-2">
@@ -109,9 +134,12 @@ function AdminProjectForm({ project, token, onSave, onCancel }) {
                 ))}
               </div>
             )}
-            <input type="file" name="thumbnail" accept="image/*" multiple
-              onChange={e => setThumbnailFiles([...e.target.files])}
+            <input type="file" accept="image/*" 
+              {...register('thumbnail', {required: existingThumbnails.length === 0 ? "Thumbnail is required" : false})}
               className="text-white text-sm" />
+            {errors.thumbnail?.message && (
+              <p className="text-red-400 text-sm">{errors.thumbnail?.message}</p>
+            )}
           </div>
 
           <div>
@@ -125,23 +153,38 @@ function AdminProjectForm({ project, token, onSave, onCancel }) {
                 ))}
               </div>
             )}
-            <input type="file" name="images" accept="image/*" multiple
-              onChange={e => setImageFiles([...e.target.files])}
+            <input type="file" accept="image/*" multiple
+              {...register('images', {required: existingImages.length === 0 ? "At least one image is required" : false})}
               className="text-white text-sm" />
+            {errors.images?.message && (
+              <p className="text-red-400 text-sm">{errors.images?.message}</p>
+            )}
           </div>
 
           <div>
             <label className="text-white text-sm block mb-1">Links</label>
-            {form.links.map((link, index) => (
-              <div key={index} className="flex gap-2 mb-2">
-                <input placeholder="Label" value={link.label} onChange={e => handleLinkChange(index, 'label', e.target.value)} required
-                  className="flex-1 px-3 py-1.5 rounded bg-burgundy text-white placeholder-grey border border-burgundy focus:outline-none focus:border-bright-pink text-sm" />
-                <input placeholder="URL" value={link.url} onChange={e => handleLinkChange(index, 'url', e.target.value)} required
-                  className="flex-1 px-3 py-1.5 rounded bg-burgundy text-white placeholder-grey border border-burgundy focus:outline-none focus:border-bright-pink text-sm" />
+            {linkFields.map((link, index) => (
+              <div key={link.id} className="flex gap-2 mb-2">
+                <div className='flex-1'>
+                  <input placeholder="Label" 
+                    {...register(`links.${index}.label`, {required: "Label is required"})}
+                    className="flex-1 w-full px-3 py-1.5 rounded bg-burgundy text-white placeholder-grey border border-burgundy focus:outline-none focus:border-bright-pink text-sm" />
+                    {errors.links?.[index]?.label?.message && (
+                      <p className="text-red-400 text-sm">{errors.links?.[index]?.label?.message}</p>
+                    )}
+                </div>
+                <div className='flex-1'>
+                  <input placeholder="URL" 
+                    {...register(`links.${index}.url`, {required: "URL is required"})}
+                    className="flex-1 w-full px-3 py-1.5 rounded bg-burgundy text-white placeholder-grey border border-burgundy focus:outline-none focus:border-bright-pink text-sm" />
+                    {errors.links?.[index]?.url?.message && (
+                      <p className="text-red-400 text-sm">{errors.links?.[index]?.url?.message}</p>
+                    )}
+                </div>
                 <button type="button" onClick={() => removeLink(index)} className="text-red-400 hover:text-red-300 transition-colors text-sm">✕</button>
               </div>
             ))}
-            <button type="button" onClick={addLink} className="text-bright-pink hover:text-lavender text-sm transition-colors">+ Add Link</button>
+            <button type="button" onClick={() => appendLink({label: "", url: ""})} className="text-bright-pink hover:text-lavender text-sm transition-colors">+ Add Link</button>
           </div>
 
           <div className="flex gap-3 mt-4">
