@@ -20,6 +20,13 @@ const uploadToCloudinary = async (buffer) => {
 
 const processUploads = async (req, res, next) => {
   try {
+    // Ensure cloudinary is configured with latest env vars
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
+
     if (req.files?.thumbnail?.length) {
       req.body.thumbnail = await Promise.all(
         req.files.thumbnail.map(f => uploadToCloudinary(f.buffer))
