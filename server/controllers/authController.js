@@ -1,12 +1,29 @@
 import jwt from 'jsonwebtoken';
+import Profile from '../models/Profile.js';
+import bcrypt from 'bcryptjs';
 
-export const login = (req, res) => {
+export const login = async (req, res) => {
   const { email, password } = req.body;
 
-  if (email !== process.env.ADMIN_EMAIL || password !== process.env.ADMIN_PASSWORD) {
-    return res.status(401).json({ message: 'Invalid credentials' });
-  }
+  try {
+    // look up user by email
+    const user = await Profile.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
 
-  const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '7d' });
-  res.json({ token });
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // sign JWT with minimal payload
+    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, {
+      expiresIn: '7d',
+    });
+    res.json({ token });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
 };

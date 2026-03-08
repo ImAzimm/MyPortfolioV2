@@ -3,7 +3,15 @@ import multer from 'multer';
 import cloudinary from '../config/cloudinary.js';
 import verifyToken from '../middleware/auth.js';
 import { login } from '../controllers/authController.js';
-import { create, update, remove } from '../controllers/projectController.js';
+import {
+  create as createProject, 
+  update as updateProject, 
+  remove as removeProject
+} from '../controllers/projectController.js';
+import { 
+  fetch as fetchProfile,
+  update as updateProfile
+} from '../controllers/profileController.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -56,16 +64,25 @@ router.post('/projects',
   verifyToken,
   upload.fields([{ name: 'thumbnail', maxCount: 2 }, { name: 'images' }]),
   processUploads,
-  create
+  createProject
 );
 
 router.put('/projects/:id',
   verifyToken,
   upload.fields([{ name: 'thumbnail', maxCount: 2 }, { name: 'images' }]),
   processUploads,
-  update
+  updateProject
 );
 
-router.delete('/projects/:id', verifyToken, remove);
+router.delete('/projects/:id', verifyToken, removeProject);
+
+/* 
+Routes to get and edit user information
+*/
+router.get('/profile', verifyToken, fetchProfile)
+router.put('/profile', verifyToken, updateProfile)
+
+// router.post('/about-me', verifyToken, )
+
 
 export default router;
