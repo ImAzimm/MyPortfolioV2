@@ -9,8 +9,6 @@ function AdminDashboard() {
   const [projects, setProjects] = useState([]);
   const [profile, setProfile] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editProject, setEditProject] = useState(null);
-  const [showForm, setShowForm] = useState(false);
   const { token, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -45,7 +43,7 @@ function AdminDashboard() {
   // TODO: Will be deleted. Just to visualise user data for now
   console.log("user profile: ", profile);
 
-  const handleDelete = async (id) => {
+  const handleDeleteProject = async (id) => {
     if (!confirm('Delete this project?')) return;
     try {
       await axios.delete(`/api/admin/projects/${id}`, {
@@ -69,21 +67,8 @@ function AdminDashboard() {
   };
 
   const handleSave = () => {
-    setShowForm(false);
-    setEditProject(null);
     fetchProjects();
   };
-
-  if (showForm || editProject) {
-    return (
-      <AdminProjectForm
-        project={editProject}
-        token={token}
-        onSave={handleSave}
-        onCancel={() => { setShowForm(false); setEditProject(null); }}
-      />
-    );
-  }
 
   return (
     <div className="bg-dark-burgundy min-h-[calc(100vh-8rem)]">
@@ -239,7 +224,7 @@ function AdminDashboard() {
           </h2>
           <div className="flex gap-3">
             <button
-              onClick={() => setShowForm(true)}
+              onClick={() => navigate("/admin/projects/new")}
               className="bg-bright-pink text-dark-burgundy border-none font-sans px-5 py-2 rounded hover:shadow-[4px_4px_8px_0px_#3D1308] hover:bg-lavender cursor-pointer transition-all"
             >
               + Add Project
@@ -262,13 +247,13 @@ function AdminDashboard() {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setEditProject(project)}
+                    onClick={() => navigate(`/admin/projects/edit/${project._id}`)}
                     className="bg-bright-pink text-dark-burgundy border-none font-sans px-4 py-1.5 rounded hover:bg-lavender cursor-pointer transition-all text-sm"
                   >
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(project._id)}
+                    onClick={() => handleDeleteProject(project._id)}
                     className="bg-red-600 text-white border-none font-sans px-4 py-1.5 rounded hover:bg-red-700 cursor-pointer transition-all text-sm"
                   >
                     Delete

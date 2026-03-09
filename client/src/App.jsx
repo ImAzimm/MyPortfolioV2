@@ -9,6 +9,7 @@ import ProjectDetailPage from './pages/ProjectDetailPage.jsx';
 import AdminLogin from './pages/AdminLogin.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import Tiptap from './testing/Tiptap.jsx';
+import AdminProjectForm from './pages/AdminProjectForm.jsx';
 
 function App() {
   const { token } = useContext(AuthContext);
@@ -25,6 +26,15 @@ function App() {
           path="/admin/dashboard"
           element={token ? <AdminDashboard /> : <Navigate to="/admin/login" />}
         />
+        <Route
+          path="/admin/projects/new"
+          element={token ? <AdminProjectForm /> : <Navigate to="/admin/login" />}
+        />
+        <Route
+          path="/admin/projects/edit/:id"
+          element={token ? <AdminProjectForm /> : <Navigate to="/admin/login" />}
+        />
+        
         <Route
           path="/testing/tiptapbasic"
           element={<Tiptap />}

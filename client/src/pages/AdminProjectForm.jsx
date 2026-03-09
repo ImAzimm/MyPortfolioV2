@@ -1,10 +1,20 @@
-import { useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { useFieldArray, useForm } from "react-hook-form";
+import { useParams, useNavigate } from "react-router-dom";
+import useProject from '../hooks/useProject';
+import { AuthContext } from '../context/AuthContext';
 
-function AdminProjectForm({ project, token, onSave, onCancel }) {
+function AdminProjectForm() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const isEdit = Boolean(id);
+  const { token } = useContext(AuthContext);
+
+  const { project, loading, error } = useProject(id);
+
   // Changes: Kita akan guna useFieldArray instead of managing form state manually
-  const {register, handleSubmit, control, formState: {errors}} = useForm({
+  const {register, handleSubmit, control, reset, formState: {errors}} = useForm({
     defaultValues: {
       title: project?.title || "",
       desc: project?.desc || "",
@@ -21,20 +31,44 @@ function AdminProjectForm({ project, token, onSave, onCancel }) {
     control,
     name: "links"
   });
-  // Until here ^
   
-  const [error, setError] = useState('');
+  const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (project) {
+      reset({
+        title: project.title,
+        desc: project.desc,
+        type: project.type,
+        links: project.links
+      });
+    }
+  }, [project, reset]);
+  
+  if (loading && isEdit) {
+    return (
+      <div className="bg-light-burgundy min-h-[50vh] flex items-center justify-center">
+        <p className="text-white text-xl">Loading...</p>
+      </div>
+    );
+  }
+
+  if (error && isEdit) {
+    return (
+      <div className="bg-light-burgundy min-h-[50vh] flex items-center justify-center">
+        <p className="text-red-400 text-xl">Project not found</p>
+      </div>
+    );
+  }
 
   // Show existing image URLs if editing
   const existingThumbnails = project?.thumbnail || [];
   const existingImages = project?.images || [];
 
-  console.log("AdminProjectForm rendered with project: ", project);
-
   const onSubmit = async (data) => {
     setSubmitting(true);
-    setError('');
+    setFormError('');
 
     const formData = new FormData();
     formData.append('title', data.title);
@@ -66,9 +100,9 @@ function AdminProjectForm({ project, token, onSave, onCancel }) {
           headers: { Authorization: `Bearer ${token}` },
         });
       }
-      onSave();
+      navigate(-1);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save project');
+      setFormError(err.response?.data?.message || 'Failed to save project');
     } finally {
       setSubmitting(false);
     }
@@ -82,10 +116,10 @@ function AdminProjectForm({ project, token, onSave, onCancel }) {
             <span>{project ? 'Edit' : 'Add'} </span>
             <span className="text-bright-pink">Project</span>
           </h1>
-          <button onClick={onCancel} className="text-white hover:text-bright-pink transition-colors">← Back</button>
+          <button onClick={() => navigate(-1)} className="text-white hover:text-bright-pink transition-colors">← Back</button>
         </div>
 
-        {error && <p className="text-red-400 mb-4">{error}</p>}
+        {formError && <p className="text-red-400 mb-4">{formError}</p>}
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 max-w-2xl">
           <div>
@@ -192,7 +226,7 @@ function AdminProjectForm({ project, token, onSave, onCancel }) {
               className="bg-bright-pink text-dark-burgundy border-none font-sans px-5 py-2 rounded hover:shadow-[4px_4px_8px_0px_#3D1308] hover:bg-lavender cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed">
               {submitting ? 'Saving...' : project ? 'Update Project' : 'Add Project'}
             </button>
-            <button type="button" onClick={onCancel}
+            <button type="button" onClick={() => navigate(-1)}
               className="bg-burgundy text-white border border-bright-pink font-sans px-5 py-2 rounded hover:bg-light-burgundy cursor-pointer transition-all">
               Cancel
             </button>
