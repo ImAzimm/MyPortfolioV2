@@ -2,10 +2,10 @@ import { useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { useFieldArray, useForm } from "react-hook-form";
 import { useParams, useNavigate } from "react-router-dom";
-import useProject from '../hooks/useProject';
-import { AuthContext } from '../context/AuthContext';
+import useProject from '../../hooks/useProject';
+import { AuthContext } from '../../context/AuthContext';
 
-function AdminProjectForm() {
+function AboutMeForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
@@ -237,4 +237,4 @@ function AdminProjectForm() {
   );
 }
 
-export default AdminProjectForm;
+export default AboutMeForm;

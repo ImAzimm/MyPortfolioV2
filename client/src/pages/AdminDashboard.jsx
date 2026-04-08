@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext.jsx';
-import AdminProjectForm from './AdminProjectForm.jsx';
+import AdminProjectForm from './forms/AdminProjectForm.jsx';
 import AboutMe from './AboutMe.jsx';
 
 function AdminDashboard() {
